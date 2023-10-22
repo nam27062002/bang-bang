@@ -5,7 +5,21 @@ namespace MovementSystem
     {
         private readonly PlayerIdlingState _idlingState;
         private readonly PlayerRunningState _runningState;
-        public Player Player;
+        private readonly PlayerDashingState _dashingState;
+        
+        public readonly PlayerMovementStateData MovementStateData;
+        public readonly Player Player;
+        
+        public PlayerMovementStateMachine(Player player)
+        {
+            Player = player;
+            MovementStateData = new PlayerMovementStateData();
+            
+            _idlingState = new PlayerIdlingState(this);
+            _runningState = new PlayerRunningState(this);
+            _dashingState = new PlayerDashingState(this);
+        }
+        
         public void ChangeState(StateMovement state)
         {
             switch (state)
@@ -14,18 +28,14 @@ namespace MovementSystem
                     ChangeState(_idlingState);
                     break;
                 case StateMovement.PlayerRunningState:
-                   ChangeState(_runningState);
+                    ChangeState(_runningState);
+                    break;
+                case StateMovement.PlayerDashingState:
+                    ChangeState(_dashingState);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
-        }
-
-        public PlayerMovementStateMachine(Player player)
-        {
-            Player = player;
-            _idlingState = new PlayerIdlingState(this);
-            _runningState = new PlayerRunningState(this);
         }
     }
 }

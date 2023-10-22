@@ -6,17 +6,23 @@ namespace MovementSystem
 {
     public class Player : MonoBehaviour
     {
+        [Header("References")]
+        public PlayerSo dataConfig;
+        [Header("Model")]
         public Transform arrowPrefab;
         
+        [NonSerialized] public Rigidbody2D Rigidbody;
         [NonSerialized] public PlayerInput PlayerInput;
-        private PlayerMovementStateMachine _stateMachine;
-
-        public float distance;
+        [NonSerialized] public float Distance;
+        
+        private PlayerMovementStateMachine _stateMachine; 
+        
         private void Awake()
         {
             PlayerInput = GetComponent<PlayerInput>();
+            Rigidbody = GetComponent<Rigidbody2D>();
             _stateMachine = new PlayerMovementStateMachine(this);
-            distance = Vector2.Distance(transform.position, arrowPrefab.position);
+            Distance = Vector2.Distance(transform.position, arrowPrefab.position);
         }
 
         private void Start()

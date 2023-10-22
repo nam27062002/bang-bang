@@ -1,4 +1,6 @@
-﻿namespace MovementSystem
+﻿using UnityEngine;
+
+namespace MovementSystem
 {
     public abstract class StateMachine
     {

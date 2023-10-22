@@ -3,6 +3,7 @@
     public enum StateMovement
     {
         PlayerIdlingState,
-        PlayerRunningState
+        PlayerRunningState,
+        PlayerDashingState
     }
 }

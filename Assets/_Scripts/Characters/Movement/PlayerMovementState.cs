@@ -1,51 +1,65 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
+using UnityEngine.InputSystem;
 using Utilities;
-using InputSystem;
+using PlayerInput = InputSystem.PlayerInput;
 
 namespace MovementSystem
 {
     public class PlayerMovementState : IState
     {
         private readonly Player _player;
-        private readonly PlayerInput _playerInput;
+        protected readonly Rigidbody2D Rigidbody;
+        protected readonly PlayerMovementStateMachine StateMachine;
+        protected readonly PlayerInput PlayerInput;
+        protected readonly PlayerMovementStateData MovementStateData;
+        protected readonly PlayerMovementConfig MovementConfig;
         protected PlayerMovementState(PlayerMovementStateMachine stateMachine)
         {
+            StateMachine = stateMachine;
             _player = stateMachine.Player;
-            _playerInput = _player.PlayerInput;
+            PlayerInput = _player.PlayerInput;
+            Rigidbody = _player.Rigidbody;
+            MovementStateData = stateMachine.MovementStateData;
+            MovementConfig = _player.dataConfig.movementConfig;
         }
         
         #region IState Methods
-        public void Enter()
+        public virtual void Enter()
         {
             Debug.Log($"State: {GetType().Name}");
+            AddInputActionsCallbacks();
         }
 
-        public void Exit()
+        public virtual void Exit()
         {
+            RemoveInputActionsCallbacks();
         }
 
-        public void HandleInput()
+        public virtual void HandleInput()
         {
+            GetMovementInput();
             HandleLookAtTarget();
         }
 
-        public void Update()
+        public virtual void Update()
         {
         }
 
-        public void PhysicsUpdate()
+        public virtual void PhysicsUpdate()
+        {
+            Move();
+        }
+
+        public virtual void OnAnimationEnterEvent()
         {
         }
 
-        public void OnAnimationEnterEvent()
+        public virtual void OnAnimationExitEvent()
         {
         }
 
-        public void OnAnimationExitEvent()
-        {
-        }
-
-        public void OnAnimationTransitionEvent()
+        public virtual void OnAnimationTransitionEvent()
         {
         }
         
@@ -53,7 +67,7 @@ namespace MovementSystem
         
         #region Main Methods
 
-        #region Player Target Handling
+        #region Target Handling Methods
         
         private void HandleLookAtTarget()
         {
@@ -62,16 +76,11 @@ namespace MovementSystem
             SetPositionLookAt(unit);
         }
         
-        private Vector2 GetCharacterLookDirection()
-        {
-            Vector2 currentPosition = _player.transform.position;
-            Vector2 targetPosition = GetPlayerLookAtPosition();
-            return VectorUtilities.GetUnitDirection(currentPosition, targetPosition);
-        }
+
         
         private Vector2 GetPlayerLookAtPosition()
         {
-            return _playerInput.GetTargetPosition();
+            return PlayerInput.GetTargetPosition();
         }
 
         private void SetDirectionLookAt(Vector2 unit)
@@ -81,12 +90,80 @@ namespace MovementSystem
         
         private void SetPositionLookAt(Vector2 unit)
         {
-            _player.arrowPrefab.position = _player.transform.position + _player.distance * new Vector3(unit.x,unit.y,0);
+            _player.arrowPrefab.position = _player.transform.position + _player.Distance * new Vector3(unit.x,unit.y,0);
         }
         
         #endregion
-       
+
+        #region Move Methods
+
+        private void GetMovementInput()
+        {
+            MovementStateData.MovementInput = PlayerInput.GetMovementDirection();
+        }
+        
+        private void Move()
+        {
+            if (!CanMove()) return;
+            Vector2 movementDirection = MovementStateData.MovementInput;
+            float movementSpeed = GetMovementSpeed();
+            Vector2 currentPlayerHorizontalVelocity = Rigidbody.velocity;
+            Rigidbody.AddForce(movementDirection * movementSpeed - currentPlayerHorizontalVelocity, ForceMode2D.Impulse);
+        }
+
+        private bool CanMove()
+        {
+            return IsMovementPerformed() && 
+                   MovementStateData.MovementSpeedModifier != 0;
+        }
         
         #endregion
+        
+        #endregion
+
+        #region Reusable Methods
+        
+        protected void ResetVelocity()
+        {
+            Rigidbody.velocity = Vector2.zero;
+        }
+
+        protected bool IsMovementPerformed()
+        {
+            return MovementStateData.MovementInput != Vector2.zero;
+        }
+        protected Vector2 GetCharacterLookDirection()
+        {
+            Vector2 currentPosition = _player.transform.position;
+            Vector2 targetPosition = GetPlayerLookAtPosition();
+            return VectorUtilities.GetUnitDirection(currentPosition, targetPosition);
+        }
+        protected float GetMovementSpeed()
+        {
+            return MovementConfig.baseSpeed * MovementStateData.MovementSpeedModifier;
+        }
+        
+        protected virtual void AddInputActionsCallbacks()
+        {
+            PlayerInput.Dashing.started += OnDashingStarted;
+        }
+        
+        protected virtual void RemoveInputActionsCallbacks()
+        {
+            PlayerInput.Dashing.started -= OnDashingStarted;
+        }
+        #endregion
+        
+
+        #region Input Methods
+        
+        private void OnDashingStarted(InputAction.CallbackContext context)
+        {
+            StateMachine.ChangeState(StateMovement.PlayerDashingState);
+        }
+        
+        #endregion
+
+
     }
 }
